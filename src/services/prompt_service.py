@@ -48,36 +48,72 @@ class AdvancedPromptService:
         # Mathematics Template
         templates[Subject.MATHEMATICS] = PromptTemplate(
             subject=Subject.MATHEMATICS,
-            base_prompt="""You are an expert mathematics tutor. Provide clear, step-by-step solutions using proper LaTeX formatting for mathematical expressions.""",
+            base_prompt="""You are an expert mathematics tutor. Provide clear, step-by-step solutions with PERFECT LaTeX formatting for mobile rendering.""",
             formatting_rules=[
-                "CRITICAL: Use ONLY LaTeX notation for ALL mathematical expressions",
-                "Wrap inline math with single $ signs: $2x + 3 = 7$",
-                "Wrap display math with double $$ signs for complex expressions:",
-                "  - Limits: $$\\lim_{x \\to c} f(x) = L$$",
-                "  - Integrals: $$\\int_a^b f(x) dx$$", 
-                "  - Complex fractions: $$\\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$",
-                "Use \\frac{numerator}{denominator} for all fractions: $\\frac{3}{4}$", 
-                "Use x^{power} for exponents: $x^{2}$, $x^{10}$",
-                "Use \\sqrt{expression} for square roots: $\\sqrt{16} = 4$",
-                "NEVER use markdown (###, **, -) or plain text formatting",
-                "NEVER use bullet points or dashes for lists",
-                "Use clear paragraph breaks between solution steps",
-                "Each step should be a complete sentence ending with period",
-                "Example: To solve $2x + 5 = 13$, we first subtract 5 from both sides.",
-                "Show calculations in display math: $$2x = 13 - 5 = 8$$"
+                "🚨 CRITICAL LATEX RULES - NO EXCEPTIONS:",
+                "",
+                "1. EVERY mathematical symbol must be wrapped in $ delimiters:",
+                "   ✅ CORRECT: 'For every $\\epsilon > 0$, there exists $\\delta > 0$'",
+                "   ❌ WRONG: 'For every ε > 0, there exists δ > 0'",
+                "   ❌ WRONG: 'For every \\epsilon > 0, there exists \\delta > 0'",
+                "",
+                "2. Greek letters - ALWAYS use LaTeX commands in $ delimiters:",
+                "   ✅ $\\alpha$, $\\beta$, $\\gamma$, $\\delta$, $\\epsilon$, $\\theta$, $\\phi$, $\\psi$, $\\omega$",
+                "   ❌ Never use: α, β, γ, δ, ε, θ, φ, ψ, ω (raw Unicode)",
+                "",
+                "3. Mathematical operators - ALWAYS in $ delimiters:",
+                "   ✅ $\\leq$, $\\geq$, $\\neq$, $\\approx$, $\\equiv$, $\\cdot$, $\\times$, $\\pm$",
+                "   ❌ Never use: ≤, ≥, ≠, ≈, ≡, ·, ×, ± (raw Unicode)",
+                "",
+                "4. Variables and expressions:",
+                "   ✅ 'The function $f(x)$ approaches $L$ as $x$ approaches $c$'",
+                "   ✅ 'We have $|x - c| < \\delta$ implies $|f(x) - L| < \\epsilon$'",
+                "   ❌ 'The function f(x) approaches L as x approaches c'",
+                "",
+                "5. Complex expressions use display math (double $$):",
+                "   ✅ $$\\lim_{x \\to c} f(x) = L$$",
+                "   ✅ $$\\int_a^b f(x) dx = \\frac{b^3 - a^3}{3}$$",
+                "   ✅ $$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$",
+                "",
+                "6. Fractions and roots:",
+                "   ✅ $\\frac{3}{4}$, $\\sqrt{16}$, $\\sqrt[3]{27}$",
+                "   ❌ Never use: 3/4, √16, ∛27",
+                "",
+                "7. Functions:",
+                "   ✅ $\\sin(x)$, $\\cos(x)$, $\\log(x)$, $\\ln(x)$",
+                "   ❌ Never use: sin(x), cos(x), log(x), ln(x)",
+                "",
+                "8. Sets and logic:",
+                "   ✅ $A \\cap B$, $A \\cup B$, $x \\in S$, $\\forall x$, $\\exists y$",
+                "   ❌ Never use: A ∩ B, A ∪ B, x ∈ S, ∀x, ∃y",
+                "",
+                "9. NEVER EVER use these forbidden patterns:",
+                "   ❌ Raw Unicode: ε, δ, ≤, ≥, ∞, ∑, ∏, ∫, √, ∂",
+                "   ❌ Naked LaTeX: \\epsilon, \\delta, \\leq without $ delimiters",
+                "   ❌ Markdown: ###, **, -, numbered lists",
+                "   ❌ Plain fractions: 1/2, 3/4 (use $\\frac{1}{2}$, $\\frac{3}{4}$)",
+                "",
+                "10. Quality check - Before responding, verify:",
+                "    • Every Greek letter is $\\command$",
+                "    • Every math operator is $\\command$", 
+                "    • No raw Unicode symbols",
+                "    • No naked LaTeX commands",
+                "    • Complex expressions use $$...$$"
             ],
             examples=[
-                "To solve the equation $2x + 3 = 7$, we need to isolate the variable $x$.",
+                "PERFECT EPSILON-DELTA EXAMPLE:",
+                "To prove that $\\lim_{x \\to c} f(x) = L$, we use the epsilon-delta definition.",
                 "",
-                "First, subtract 3 from both sides of the equation:",
-                "$$2x + 3 - 3 = 7 - 3$$",
-                "$$2x = 4$$",
+                "For every $\\epsilon > 0$, there exists a $\\delta > 0$ such that:",
+                "$$0 < |x - c| < \\delta \\implies |f(x) - L| < \\epsilon$$",
                 "",
-                "Next, divide both sides by 2:",
-                "$$\\frac{2x}{2} = \\frac{4}{2}$$", 
-                "$$x = 2$$",
+                "This means if $x$ is within distance $\\delta$ from $c$, then $f(x)$ is within distance $\\epsilon$ from $L$.",
                 "",
-                "Therefore, the solution is $x = 2$."
+                "PERFECT DIFFERENTIAL PRIVACY EXAMPLE:",
+                "A mechanism $M$ satisfies $\\epsilon$-differential privacy if for all datasets $D$ and $D'$ that differ by one record:",
+                "$$P(M(D) \\in S) \\leq e^{\\epsilon} \\cdot P(M(D') \\in S)$$",
+                "",
+                "Here $\\epsilon$ controls the privacy parameter, and $e^{\\epsilon}$ bounds the privacy loss."
             ]
         )
         
@@ -276,40 +312,27 @@ class AdvancedPromptService:
         optimized = re.sub(r'^\d+\. ', r'', optimized, flags=re.MULTILINE)  # Remove numbered lists
         
         # Fix stray LaTeX expressions that aren't wrapped in $ delimiters
-        # This catches expressions like "the \sqrt{3} is" and converts to "the $\sqrt{3}$ is"
         def fix_stray_latex(text):
-            # Find LaTeX expressions that aren't already wrapped in $ delimiters
-            # Pattern matches \command{...} not preceded by $ and not followed by $
-            pattern = r'(?<!\$)\\(sqrt|frac|sum|int|log|sin|cos|tan|alpha|beta|gamma|pi|theta|phi|psi|omega|infty)\{[^}]*\}(?!\$)'
-            
-            def wrap_latex(match):
-                return f"${match.group(0)}$"
-            
-            return re.sub(pattern, wrap_latex, text)
-        
-        # Convert complex inline math to display math for better mobile rendering
-        # Expressions with subscripts/superscripts should use display math
-        def fix_complex_inline_math(text):
-            # Pattern for complex expressions that should be display math
-            complex_patterns = [
-                r'\$\\lim_\{[^}]+\}[^$]*\$',  # Limits with subscripts
-                r'\$\\sum_\{[^}]+\}[^$]*\$',  # Summations with subscripts  
-                r'\$\\int_\{[^}]+\}[^$]*\$',  # Integrals with bounds
-                r'\$\\frac\{[^}]*\\[a-z]+\{[^}]+\}[^}]*\}\{[^}]*\$',  # Complex fractions
-                r'\$[^$]*_\{[^}]+\}[^$]*\^\{[^}]+\}[^$]*\$',  # Sub and superscripts
+            # More comprehensive LaTeX command detection
+            patterns_to_fix = [
+                # Greek letters
+                (r'(?<!\$)\\(epsilon|delta|alpha|beta|gamma|theta|phi|psi|omega|sigma|lambda|mu|nu|xi|rho|tau|chi)(?!\$)', r'$\\\1$'),
+                # Math operators and symbols  
+                (r'(?<!\$)\\(leq|geq|neq|approx|equiv|cdot|times|div|pm|mp|cap|cup|subset|supset|in|notin|infty)(?!\$)', r'$\\\1$'),
+                # Functions with arguments
+                (r'(?<!\$)\\(sqrt|frac|sum|int|log|ln|sin|cos|tan|sec|csc|cot)\{[^}]*\}(?!\{[^}]*\})*(?!\$)', r'$\g<0>$'),
+                # Simple expressions like "< ε" or "> ε"  
+                (r'([<>=])\s*([εδαβγθφψωσλμνξρτχ])', r'\1 $\2$'),
+                # Standalone Greek letters in text
+                (r'(?<![a-zA-Z$])([εδαβγθφψωσλμνξρτχ])(?![a-zA-Z$])', r'$\1$'),
             ]
             
-            for pattern in complex_patterns:
-                def to_display_math(match):
-                    # Remove outer $ and add $$
-                    inner = match.group(0)[1:-1]  # Remove $ from both ends
-                    return f"$${inner}$$"
-                
-                text = re.sub(pattern, to_display_math, text)
+            for pattern, replacement in patterns_to_fix:
+                text = re.sub(pattern, replacement, text)
             
             return text
         
-        optimized = fix_complex_inline_math(optimized)
+        optimized = fix_stray_latex(optimized)
         
         # Ensure proper spacing around operators (but preserve LaTeX)
         # Only apply to non-LaTeX content (outside of $ delimiters)
