@@ -253,11 +253,14 @@ async def get_personalization_profile(student_id: str):
     }
 
 if __name__ == "__main__":
-    # Development server
+    # Get port from environment variable (Railway sets this automatically)
+    port = int(os.getenv("PORT", 8000))
+    
+    # Production server
     uvicorn.run(
-        "main:app",
-        host="127.0.0.1",
-        port=8001,
-        reload=True,
+        "src.main:app",
+        host="0.0.0.0",
+        port=port,
+        reload=False,
         log_level="info"
     )

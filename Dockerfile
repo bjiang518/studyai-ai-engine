@@ -10,8 +10,5 @@ RUN pip install --no-cache-dir -r requirements-railway.txt
 COPY src/ ./src/
 COPY .env.example .env
 
-# Expose port
-EXPOSE 8000
-
-# Run the application (shell form allows $PORT expansion)
-CMD uvicorn src.main:app --host 0.0.0.0 --port $PORT
+# Run the application (Python will read PORT environment variable)
+CMD ["python", "-m", "src.main"]
