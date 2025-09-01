@@ -251,6 +251,7 @@ class AdvancedPromptService:
                 "- Inline math: $expression$ (single dollar signs)",
                 "- Display math: $$expression$$ (double dollar signs)",
                 "- NEVER use \\(...\\) or \\[...\\] delimiters",
+                "- NEVER split mathematical expressions across multiple $ pairs",
                 "- NO markdown headers (###), bold (**), or bullet points (-)",
                 "- NO plain text math notation like 'x^2' or '3/4'",
                 "- Use \\frac{}{}, \\sqrt{}, x^{} consistently",
@@ -260,9 +261,14 @@ class AdvancedPromptService:
                 "EXAMPLES OF CORRECT FORMATTING:",
                 "✅ For every $\\epsilon > 0$, there exists $\\delta > 0$",
                 "✅ $$\\lim_{x \\to c} f(x) = L$$",
+                "✅ We need $0 < |x - c| < \\delta$ to ensure $|f(x) - L| < \\epsilon$",
                 "✅ The quadratic formula is $x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$",
                 "",
-                "❌ NEVER USE: \\(\\epsilon > 0\\), \\[\\lim_{x \\to c} f(x) = L\\]"
+                "❌ NEVER USE:",
+                "❌ \\(\\epsilon > 0\\), \\[\\lim_{x \\to c} f(x) = L\\]",
+                "❌ $\\epsilon$>$0$ (split expressions)",
+                "❌ $\\lim_{x \\to c} f$(x) =$L$ (broken across dollars)",
+                "❌ $0$< |x - c| <$\\delta$ (comparison operators outside math)"
             ])
         
         system_prompt_parts.extend([
@@ -387,7 +393,21 @@ class AdvancedPromptService:
             # Simple fractions: 1/2 → \frac{1}{2} (when not already in LaTeX)
             text = re.sub(r'(?<![a-zA-Z\\])(\d+)/(\d+)(?![a-zA-Z])', r'\\frac{\1}{\2}', text)
             
-            # Step 6: CRITICAL - Convert all delimiters to $ format for iOS compatibility
+            # Step 6: CRITICAL - Fix mathematical expression patterns
+            # First, fix common broken patterns before delimiter normalization
+            
+            # Fix split comparison operators: "$0$< |x - c| <$\delta$" → "$0 < |x - c| < \delta$"
+            text = re.sub(r'\$(\d+)\$\s*([<>=]+)\s*([^$]*?)\s*([<>=]+)\s*\$([^$]+?)\$', r'$\1 \2 \3 \4 \5$', text)
+            text = re.sub(r'\$([^$]+?)\$\s*([<>=]+)\s*\$([^$]+?)\$', r'$\1 \2 \3$', text)
+            
+            # Fix broken function calls: "$\lim_{x \to c} f$(x) =$L$" → "$\lim_{x \to c} f(x) = L$"
+            text = re.sub(r'\$([^$]*?)\\lim_\{[^}]*\}\s*f\$\(([^)]*?)\)\s*=\s*\$([^$]*?)\$', r'$\1\\lim_{\2} f(\3) = \4$', text)
+            text = re.sub(r'\$([^$]*?)\$\s*\(([^)]*?)\)\s*=\s*\$([^$]*?)\$', r'$\1(\2) = \3$', text)
+            
+            # Fix scattered mathematical operators: "$\epsilon$>$0$" → "$\epsilon > 0$"
+            text = re.sub(r'\$([^$]+?)\$\s*([><=]+)\s*\$([^$]+?)\$', r'$\1 \2 \3$', text)
+            text = re.sub(r'\$([^$]+?)\$\s*([+\-*/])\s*\$([^$]+?)\$', r'$\1 \2 \3$', text)
+            
             # Convert ChatGPT delimiters to standard $ format
             text = re.sub(r'\\\\?\\\[', '$$', text)  # \[ → $$
             text = re.sub(r'\\\\?\\\]', '$$', text)  # \] → $$
@@ -403,8 +423,10 @@ class AdvancedPromptService:
             text = re.sub(r'\$\$+', '$$', text)  # $$$ → $$
             text = re.sub(r'\$\s+', '$', text)   # $ content → $content
             text = re.sub(r'\s+\$', '$', text)   # content $ → content$
-            text = re.sub(r'\$\s*([^$]+?)\s*\$', r'$\1$', text)  # Clean spacing in $...$
-            text = re.sub(r'\$\$\s*([^$]+?)\s*\$\$', r'$$\1$$', text)  # Clean spacing in $$...$$
+            
+            # Final cleanup: ensure proper spacing in math expressions
+            text = re.sub(r'\$([^$]*?)\$', lambda m: '$' + ' '.join(m.group(1).split()) + '$', text)
+            text = re.sub(r'\$\$([^$]*?)\$\$', lambda m: '$$' + ' '.join(m.group(1).split()) + '$$', text)
             
             return text
         
