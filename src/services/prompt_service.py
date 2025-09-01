@@ -246,15 +246,23 @@ class AdvancedPromptService:
         if subject in self.math_subjects:
             system_prompt_parts.extend([
                 "",
-                "MATHEMATICAL FORMATTING REQUIREMENTS:",
-                "- ALL mathematical expressions MUST use LaTeX notation",
+                "CRITICAL MATHEMATICAL FORMATTING REQUIREMENTS:",
+                "- ALL mathematical expressions MUST use simple $ delimiters only",
                 "- Inline math: $expression$ (single dollar signs)",
                 "- Display math: $$expression$$ (double dollar signs)",
+                "- NEVER use \\(...\\) or \\[...\\] delimiters",
                 "- NO markdown headers (###), bold (**), or bullet points (-)",
                 "- NO plain text math notation like 'x^2' or '3/4'",
                 "- Use \\frac{}{}, \\sqrt{}, x^{} consistently",
                 "- Write complete sentences between mathematical expressions",
-                "- Separate solution steps with blank lines for clarity"
+                "- Separate solution steps with blank lines for clarity",
+                "",
+                "EXAMPLES OF CORRECT FORMATTING:",
+                "✅ For every $\\epsilon > 0$, there exists $\\delta > 0$",
+                "✅ $$\\lim_{x \\to c} f(x) = L$$",
+                "✅ The quadratic formula is $x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$",
+                "",
+                "❌ NEVER USE: \\(\\epsilon > 0\\), \\[\\lim_{x \\to c} f(x) = L\\]"
             ])
         
         system_prompt_parts.extend([
@@ -379,20 +387,22 @@ class AdvancedPromptService:
             # Simple fractions: 1/2 → \frac{1}{2} (when not already in LaTeX)
             text = re.sub(r'(?<![a-zA-Z\\])(\d+)/(\d+)(?![a-zA-Z])', r'\\frac{\1}{\2}', text)
             
-            # Step 6: CRITICAL - Fix mixed delimiter issues
-            # Convert ChatGPT delimiters to consistent $ format for post-processing
-            text = re.sub(r'\\\\?\\\(', '$', text)  # \( → $
-            text = re.sub(r'\\\\?\\\)', '$', text)  # \) → $
+            # Step 6: CRITICAL - Convert all delimiters to $ format for iOS compatibility
+            # Convert ChatGPT delimiters to standard $ format
             text = re.sub(r'\\\\?\\\[', '$$', text)  # \[ → $$
             text = re.sub(r'\\\\?\\\]', '$$', text)  # \] → $$
+            text = re.sub(r'\\\\?\\\(', '$', text)  # \( → $
+            text = re.sub(r'\\\\?\\\)', '$', text)  # \) → $
             
             # Fix broken mixed patterns like "\(content$ > 0\)$"
             text = re.sub(r'\\\(([^$]*?)\$([^$]*?)\\\)\$', r'$\1\2$', text)
             text = re.sub(r'\$([^$]*?)\\\)', r'$\1$', text)
             text = re.sub(r'\\\(([^$]*?)\$', r'$\1$', text)
             
-            # Clean up double dollar signs and normalize
+            # Clean up multiple dollar signs and normalize spacing
             text = re.sub(r'\$\$+', '$$', text)  # $$$ → $$
+            text = re.sub(r'\$\s+', '$', text)   # $ content → $content
+            text = re.sub(r'\s+\$', '$', text)   # content $ → content$
             text = re.sub(r'\$\s*([^$]+?)\s*\$', r'$\1$', text)  # Clean spacing in $...$
             text = re.sub(r'\$\$\s*([^$]+?)\s*\$\$', r'$$\1$$', text)  # Clean spacing in $$...$$
             
