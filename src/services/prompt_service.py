@@ -272,9 +272,19 @@ class AdvancedPromptService:
         optimized = re.sub(r'^- ', r'', optimized, flags=re.MULTILINE)  # Remove bullet points
         optimized = re.sub(r'^\d+\. ', r'', optimized, flags=re.MULTILINE)  # Remove numbered lists
         
-        # Clean up extra dashes and formatting characters
-        optimized = re.sub(r'^-+$', r'', optimized, flags=re.MULTILINE)  # Remove lines with just dashes
-        optimized = re.sub(r'^\s*-\s*$', r'', optimized, flags=re.MULTILINE)  # Remove lines with spaced dashes
+        # Fix stray LaTeX expressions that aren't wrapped in $ delimiters
+        # This catches expressions like "the \sqrt{3} is" and converts to "the $\sqrt{3}$ is"
+        def fix_stray_latex(text):
+            # Find LaTeX expressions that aren't already wrapped in $ delimiters
+            # Pattern matches \command{...} not preceded by $ and not followed by $
+            pattern = r'(?<!\$)\\(sqrt|frac|sum|int|log|sin|cos|tan|alpha|beta|gamma|pi|theta|phi|psi|omega|infty)\{[^}]*\}(?!\$)'
+            
+            def wrap_latex(match):
+                return f"${match.group(0)}$"
+            
+            return re.sub(pattern, wrap_latex, text)
+        
+        optimized = fix_stray_latex(optimized)
         
         # Ensure proper spacing around operators (but preserve LaTeX)
         # Only apply to non-LaTeX content (outside of $ delimiters)
