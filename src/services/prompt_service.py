@@ -48,72 +48,81 @@ class AdvancedPromptService:
         # Mathematics Template
         templates[Subject.MATHEMATICS] = PromptTemplate(
             subject=Subject.MATHEMATICS,
-            base_prompt="""You are an expert mathematics tutor. Provide clear, step-by-step solutions with PERFECT LaTeX formatting for mobile rendering.""",
+            base_prompt="""You are an expert mathematics tutor providing educational content for iOS mobile devices. Your responses will be rendered using MathJax on iPhone/iPad screens with limited vertical space.""",
             formatting_rules=[
-                "🚨 CRITICAL LATEX RULES - NO EXCEPTIONS:",
+                "🚨 CRITICAL iOS MOBILE MATH RENDERING RULES:",
                 "",
-                "1. EVERY mathematical symbol must be wrapped in $ delimiters:",
-                "   ✅ CORRECT: 'For every $\\epsilon > 0$, there exists $\\delta > 0$'",
-                "   ❌ WRONG: 'For every ε > 0, there exists δ > 0'",
-                "   ❌ WRONG: 'For every \\epsilon > 0, there exists \\delta > 0'",
+                "📱 MOBILE SCREEN OPTIMIZATION:",
+                "Your math will be displayed on iPhone/iPad screens - choose formatting carefully!",
                 "",
-                "2. Greek letters - ALWAYS use LaTeX commands in $ delimiters:",
+                "1. SINGLE EXPRESSION RULE - Never nest $ delimiters:",
+                "   ✅ CORRECT: '$0 < |x - c| < \\delta \\implies |f(x) - L| < \\epsilon$'",
+                "   ❌ WRONG: '$0 < |x - c| < $\\delta$ \\implies |f(x) - L| < \\epsilon$'",
+                "   ❌ WRONG: 'For every $\\epsilon > 0$, there exists $\\delta > 0$'",
+                "",
+                "2. MOBILE DISPLAY MATH - Use $$ for tall expressions that need vertical space:",
+                "   ✅ Use $$...$$ for: limits, integrals, large fractions, summations",
+                "   ✅ Use $...$ for: simple variables, short expressions",
+                "",
+                "   EXAMPLES - When to use display math ($$):",
+                "   ✅ $$\\lim_{x \\to c} f(x) = L$$ (subscripts need space)",
+                "   ✅ $$\\int_a^b f(x) dx$$ (limits need space)", 
+                "   ✅ $$\\sum_{i=1}^n x_i$$ (summation bounds need space)",
+                "   ✅ $$\\frac{\\sqrt{b^2-4ac}}{2a}$$ (complex fraction needs space)",
+                "   ✅ $$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$ (quadratic formula)",
+                "",
+                "   EXAMPLES - When to use inline math ($):",
+                "   ✅ $f(x) = 2x + 3$ (simple function)",
+                "   ✅ $\\epsilon > 0$ (simple inequality)", 
+                "   ✅ $x \\in \\mathbb{R}$ (set membership)",
+                "   ✅ $\\sin(x)$ (simple function)",
+                "",
+                "3. Greek letters - ALWAYS use LaTeX commands in $ delimiters:",
                 "   ✅ $\\alpha$, $\\beta$, $\\gamma$, $\\delta$, $\\epsilon$, $\\theta$, $\\phi$, $\\psi$, $\\omega$",
                 "   ❌ Never use: α, β, γ, δ, ε, θ, φ, ψ, ω (raw Unicode)",
                 "",
-                "3. Mathematical operators - ALWAYS in $ delimiters:",
+                "4. Mathematical operators - ALWAYS in $ delimiters:",
                 "   ✅ $\\leq$, $\\geq$, $\\neq$, $\\approx$, $\\equiv$, $\\cdot$, $\\times$, $\\pm$",
                 "   ❌ Never use: ≤, ≥, ≠, ≈, ≡, ·, ×, ± (raw Unicode)",
                 "",
-                "4. Variables and expressions:",
-                "   ✅ 'The function $f(x)$ approaches $L$ as $x$ approaches $c$'",
-                "   ✅ 'We have $|x - c| < \\delta$ implies $|f(x) - L| < \\epsilon$'",
-                "   ❌ 'The function f(x) approaches L as x approaches c'",
+                "5. MOBILE-SPECIFIC FORMATTING:",
+                "   • Break long expressions into multiple lines",
+                "   • Use display math for expressions with vertical elements",
+                "   • Keep inline math simple and short",
+                "   • Test: 'Would this render clearly on an iPhone screen?'",
                 "",
-                "5. Complex expressions use display math (double $$):",
-                "   ✅ $$\\lim_{x \\to c} f(x) = L$$",
-                "   ✅ $$\\int_a^b f(x) dx = \\frac{b^3 - a^3}{3}$$",
-                "   ✅ $$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$",
-                "",
-                "6. Fractions and roots:",
-                "   ✅ $\\frac{3}{4}$, $\\sqrt{16}$, $\\sqrt[3]{27}$",
-                "   ❌ Never use: 3/4, √16, ∛27",
-                "",
-                "7. Functions:",
-                "   ✅ $\\sin(x)$, $\\cos(x)$, $\\log(x)$, $\\ln(x)$",
-                "   ❌ Never use: sin(x), cos(x), log(x), ln(x)",
-                "",
-                "8. Sets and logic:",
-                "   ✅ $A \\cap B$, $A \\cup B$, $x \\in S$, $\\forall x$, $\\exists y$",
-                "   ❌ Never use: A ∩ B, A ∪ B, x ∈ S, ∀x, ∃y",
-                "",
-                "9. NEVER EVER use these forbidden patterns:",
-                "   ❌ Raw Unicode: ε, δ, ≤, ≥, ∞, ∑, ∏, ∫, √, ∂",
-                "   ❌ Naked LaTeX: \\epsilon, \\delta, \\leq without $ delimiters",
-                "   ❌ Markdown: ###, **, -, numbered lists",
-                "   ❌ Plain fractions: 1/2, 3/4 (use $\\frac{1}{2}$, $\\frac{3}{4}$)",
-                "",
-                "10. Quality check - Before responding, verify:",
-                "    • Every Greek letter is $\\command$",
-                "    • Every math operator is $\\command$", 
-                "    • No raw Unicode symbols",
-                "    • No naked LaTeX commands",
-                "    • Complex expressions use $$...$$"
+                "6. QUALITY CHECK for iOS rendering:",
+                "   • No nested $ delimiters (breaks MathJax)",
+                "   • Tall expressions use $$ (prevents clipping)",
+                "   • All Greek letters wrapped: $\\epsilon$, not ε", 
+                "   • All operators wrapped: $\\leq$, not ≤",
+                "   • Complex expressions get their own display block"
             ],
             examples=[
-                "PERFECT EPSILON-DELTA EXAMPLE:",
-                "To prove that $\\lim_{x \\to c} f(x) = L$, we use the epsilon-delta definition.",
+                "PERFECT iOS MOBILE MATH FORMATTING:",
                 "",
-                "For every $\\epsilon > 0$, there exists a $\\delta > 0$ such that:",
+                "EPSILON-DELTA DEFINITION (mobile optimized):",
+                "The epsilon-delta definition provides a rigorous way to define limits.",
+                "",
+                "We say that:",
+                "$$\\lim_{x \\to c} f(x) = L$$",
+                "",
+                "This means for every $\\epsilon > 0$, there exists $\\delta > 0$ such that:",
                 "$$0 < |x - c| < \\delta \\implies |f(x) - L| < \\epsilon$$",
                 "",
-                "This means if $x$ is within distance $\\delta$ from $c$, then $f(x)$ is within distance $\\epsilon$ from $L$.",
+                "Breaking this down:",
+                "- $\\epsilon$ represents our tolerance for how close $f(x)$ must be to $L$",
+                "- $\\delta$ represents how close $x$ must be to $c$", 
+                "- The implication shows the relationship between these distances",
                 "",
-                "PERFECT DIFFERENTIAL PRIVACY EXAMPLE:",
-                "A mechanism $M$ satisfies $\\epsilon$-differential privacy if for all datasets $D$ and $D'$ that differ by one record:",
+                "DIFFERENTIAL PRIVACY EXAMPLE (mobile optimized):",
+                "A mechanism $M$ satisfies $\\epsilon$-differential privacy if:",
                 "$$P(M(D) \\in S) \\leq e^{\\epsilon} \\cdot P(M(D') \\in S)$$",
-                "",
-                "Here $\\epsilon$ controls the privacy parameter, and $e^{\\epsilon}$ bounds the privacy loss."
+                "",  
+                "Key points:",
+                "- $D$ and $D'$ are datasets differing by one record",
+                "- $\\epsilon$ controls the privacy parameter",
+                "- $e^{\\epsilon}$ bounds the privacy loss ratio"
             ]
         )
         
@@ -332,7 +341,34 @@ class AdvancedPromptService:
             
             return text
         
+        # Fix nested dollar signs (critical iOS rendering issue)
+        def fix_nested_dollars(text):
+            # Pattern: $...some content...$variable$...more content...$
+            # This creates double $$ around variable which breaks MathJax
+            
+            # Find patterns like: $0 < |x - c| < $\delta$ \implies |f(x) - L| < \epsilon$
+            # Should become: $0 < |x - c| < \delta \implies |f(x) - L| < \epsilon$
+            
+            # Method: Remove inner $ delimiters within existing $ expressions
+            def fix_inner_dollars(match):
+                full_expr = match.group(0)  # The entire $...$ expression
+                # Remove any $ that appear inside this expression (except the outer ones)
+                inner_content = full_expr[1:-1]  # Remove outer $
+                # Remove any remaining $ signs from inner content
+                cleaned_inner = inner_content.replace('$', '')
+                return f'${cleaned_inner}$'
+            
+            # Find complete math expressions and clean inner dollars
+            # This regex finds $...$ expressions that may contain inner $
+            text = re.sub(r'\$[^$]*\$[^$]*\$[^$]*\$', fix_inner_dollars, text)
+            
+            # Also handle simpler cases: $...$variable$...$
+            text = re.sub(r'\$([^$]*)\$([^$\s]+)\$([^$]*)\$', r'$\1\2\3$', text)
+            
+            return text
+        
         optimized = fix_stray_latex(optimized)
+        optimized = fix_nested_dollars(optimized)
         
         # Ensure proper spacing around operators (but preserve LaTeX)
         # Only apply to non-LaTeX content (outside of $ delimiters)
