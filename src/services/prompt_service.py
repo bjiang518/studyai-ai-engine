@@ -52,7 +52,10 @@ class AdvancedPromptService:
             formatting_rules=[
                 "CRITICAL: Use ONLY LaTeX notation for ALL mathematical expressions",
                 "Wrap inline math with single $ signs: $2x + 3 = 7$",
-                "Wrap display math with double $$ signs: $$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$",
+                "Wrap display math with double $$ signs for complex expressions:",
+                "  - Limits: $$\\lim_{x \\to c} f(x) = L$$",
+                "  - Integrals: $$\\int_a^b f(x) dx$$", 
+                "  - Complex fractions: $$\\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$",
                 "Use \\frac{numerator}{denominator} for all fractions: $\\frac{3}{4}$", 
                 "Use x^{power} for exponents: $x^{2}$, $x^{10}$",
                 "Use \\sqrt{expression} for square roots: $\\sqrt{16} = 4$",
@@ -284,7 +287,29 @@ class AdvancedPromptService:
             
             return re.sub(pattern, wrap_latex, text)
         
-        optimized = fix_stray_latex(optimized)
+        # Convert complex inline math to display math for better mobile rendering
+        # Expressions with subscripts/superscripts should use display math
+        def fix_complex_inline_math(text):
+            # Pattern for complex expressions that should be display math
+            complex_patterns = [
+                r'\$\\lim_\{[^}]+\}[^$]*\$',  # Limits with subscripts
+                r'\$\\sum_\{[^}]+\}[^$]*\$',  # Summations with subscripts  
+                r'\$\\int_\{[^}]+\}[^$]*\$',  # Integrals with bounds
+                r'\$\\frac\{[^}]*\\[a-z]+\{[^}]+\}[^}]*\}\{[^}]*\$',  # Complex fractions
+                r'\$[^$]*_\{[^}]+\}[^$]*\^\{[^}]+\}[^$]*\$',  # Sub and superscripts
+            ]
+            
+            for pattern in complex_patterns:
+                def to_display_math(match):
+                    # Remove outer $ and add $$
+                    inner = match.group(0)[1:-1]  # Remove $ from both ends
+                    return f"$${inner}$$"
+                
+                text = re.sub(pattern, to_display_math, text)
+            
+            return text
+        
+        optimized = fix_complex_inline_math(optimized)
         
         # Ensure proper spacing around operators (but preserve LaTeX)
         # Only apply to non-LaTeX content (outside of $ delimiters)
