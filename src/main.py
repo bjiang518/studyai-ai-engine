@@ -13,8 +13,8 @@ import os
 from dotenv import load_dotenv
 
 # Import our advanced AI services
-from services.openai_service import EducationalAIService
-from services.prompt_service import AdvancedPromptService
+from src.services.openai_service import EducationalAIService
+from src.services.prompt_service import AdvancedPromptService
 
 # Load environment variables
 load_dotenv()
