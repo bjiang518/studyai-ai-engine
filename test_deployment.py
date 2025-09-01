@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Test script for StudyAI AI Engine deployment
 """
@@ -88,9 +89,9 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         url = sys.argv[1]
     else:
-        # Default to Railway.app pattern (you'll need to update this)
+        # Default to actual Railway deployment URL
         url = "https://studyai-ai-engine-production.up.railway.app"
-        print(f"No URL provided, using default: {url}")
+        print(f"No URL provided, using production Railway URL: {url}")
         print("Usage: python test_deployment.py https://your-ai-engine-url.com")
     
     success = test_ai_engine(url)

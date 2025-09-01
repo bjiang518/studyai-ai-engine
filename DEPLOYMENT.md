@@ -1,41 +1,68 @@
 # StudyAI AI Engine - Deployment Guide
 
-## 🚀 Railway.app Deployment (Recommended)
+## ✅ SUCCESSFULLY DEPLOYED (September 1, 2025)
+
+**Live Production URL**: https://studyai-ai-engine-production.up.railway.app  
+**GitHub Repository**: https://github.com/bjiang518/studyai-ai-engine  
+**Status**: Production Ready & Integrated with iOS App
+
+## 🚀 Railway.app Deployment (Proven Working)
 
 ### Step 1: Prepare Your Repository
 ```bash
 cd /Users/bojiang/StudyAI_Workspace/03_ai_engine
 git init
 git add .
-git commit -m "Initial AI Engine setup with improved LaTeX prompting"
-git remote add origin YOUR_GITHUB_REPO_URL
+git commit -m "Initial AI Engine deployment with LaTeX math rendering"
+git remote add origin https://github.com/bjiang518/studyai-ai-engine
 git push -u origin main
 ```
 
-### Step 2: Deploy to Railway
+### Step 2: Deploy to Railway (Working Configuration)
 1. Go to [Railway.app](https://railway.app)
 2. Sign up with GitHub
-3. Click "Deploy from GitHub repo"
-4. Select your `03_ai_engine` repository
-5. Railway will auto-detect Python and deploy
+3. Click "New Project" → "Deploy from GitHub repo"
+4. Select your `studyai-ai-engine` repository
+5. **IMPORTANT**: After initial deployment, go to Settings → Generate Domain
+6. Railway auto-detects Python and creates proper deployment
 
-### Step 3: Set Environment Variables
-In Railway dashboard, add these environment variables:
+### Step 3: Set Environment Variables (Required)
+In Railway dashboard → Your Project → Variables, add:
 ```
 OPENAI_API_KEY=your_openai_api_key_here
 DEFAULT_MODEL=gpt-4o-mini
 ENVIRONMENT=production
-PORT=8000
+```
+**Note**: Do NOT set PORT manually - Railway provides this automatically
+
+### Step 4: Dockerfile Configuration (Working)
+Our successful Dockerfile setup:
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements-railway.txt .
+RUN pip install --no-cache-dir -r requirements-railway.txt
+COPY src/ ./src/
+COPY .env.example .env
+COPY start.sh .
+CMD ["./start.sh"]
 ```
 
-### Step 4: Get Your Deployed URL
-Railway will provide a URL like: `https://studyai-ai-engine-production.up.railway.app`
+### Step 5: Startup Script (Working)
+Railway uses our `start.sh` script:
+```bash
+#!/bin/bash
+echo "🔍 DEBUG: Railway PORT environment variable: '$PORT'"
+python -m src.main
+```
 
-### Step 5: Update iOS App
-Update `NetworkService.swift`:
-```swift
-// Replace localhost with Railway URL
-private let localAIEngineURL = "https://studyai-ai-engine-production.up.railway.app"
+### Step 6: Main Application (Working)
+Python code properly reads Railway PORT:
+```python
+if __name__ == "__main__":
+    port_env = os.getenv("PORT", "8000")
+    port = int(port_env)
+    uvicorn.run("src.main:app", host="0.0.0.0", port=port, reload=False)
 ```
 
 ## 🔄 Alternative: Render.com Deployment

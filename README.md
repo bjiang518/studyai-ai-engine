@@ -1,12 +1,35 @@
 # StudyAI AI Engine
 
-**Phase 2 Core Component**: Advanced AI Processing and Agentic Workflows  
+**Phase 2 Core Component**: Advanced AI Processing and Educational Workflows  
 **Created**: September 1, 2025  
-**Status**: Foundation - Ready for Phase 2 Development
+**Status**: ✅ **DEPLOYED** - Production Ready on Railway  
+**Live URL**: https://studyai-ai-engine-production.up.railway.app
 
 ## 🎯 Purpose
 
-The AI Engine is the intelligent core of StudyAI, responsible for advanced educational AI processing that goes beyond simple Q&A. It implements sophisticated reasoning, personalized learning, and educational evaluation algorithms.
+The AI Engine is the intelligent core of StudyAI, providing advanced educational AI processing with sophisticated LaTeX formatting, educational reasoning, and personalized learning responses. **Successfully deployed and integrated with iOS app.**
+
+## ✅ Current Production Features
+
+### 1. Advanced Educational Processing
+- **Clean LaTeX Math Rendering**: Proper `$2 + 2 = 4$` formatting for iOS display
+- **Educational Response Structure**: Step-by-step reasoning and learning analysis
+- **Subject-Specific Optimization**: Mathematics, Physics, Chemistry, Biology
+- **Multi-Step Problem Solving**: Complex educational reasoning
+
+### 2. Production API Endpoints
+- **Health Check**: `/health` - Service status and capabilities
+- **Question Processing**: `/api/v1/process-question` - Advanced educational AI
+- **Practice Generation**: `/api/v1/generate-practice` - Personalized questions
+- **Answer Evaluation**: `/api/v1/evaluate-answer` - Student work assessment
+- **Subject Support**: `/api/v1/subjects` - Available subjects and features
+
+### 3. Deployment Architecture
+- **Platform**: Railway.app (Production)
+- **Repository**: https://github.com/bjiang518/studyai-ai-engine
+- **Container**: Python 3.11 + FastAPI + Uvicorn
+- **AI Model**: OpenAI GPT-4o-mini with educational prompting
+- **Response Time**: ~2 seconds for complex problems
 
 ## 🧠 Core Capabilities (Phase 2)
 

@@ -379,6 +379,23 @@ class AdvancedPromptService:
             # Simple fractions: 1/2 → \frac{1}{2} (when not already in LaTeX)
             text = re.sub(r'(?<![a-zA-Z\\])(\d+)/(\d+)(?![a-zA-Z])', r'\\frac{\1}{\2}', text)
             
+            # Step 6: CRITICAL - Fix mixed delimiter issues
+            # Convert ChatGPT delimiters to consistent $ format for post-processing
+            text = re.sub(r'\\\\?\\\(', '$', text)  # \( → $
+            text = re.sub(r'\\\\?\\\)', '$', text)  # \) → $
+            text = re.sub(r'\\\\?\\\[', '$$', text)  # \[ → $$
+            text = re.sub(r'\\\\?\\\]', '$$', text)  # \] → $$
+            
+            # Fix broken mixed patterns like "\(content$ > 0\)$"
+            text = re.sub(r'\\\(([^$]*?)\$([^$]*?)\\\)\$', r'$\1\2$', text)
+            text = re.sub(r'\$([^$]*?)\\\)', r'$\1$', text)
+            text = re.sub(r'\\\(([^$]*?)\$', r'$\1$', text)
+            
+            # Clean up double dollar signs and normalize
+            text = re.sub(r'\$\$+', '$$', text)  # $$$ → $$
+            text = re.sub(r'\$\s*([^$]+?)\s*\$', r'$\1$', text)  # Clean spacing in $...$
+            text = re.sub(r'\$\$\s*([^$]+?)\s*\$\$', r'$$\1$$', text)  # Clean spacing in $$...$$
+            
             return text
         
         # Apply comprehensive repair
