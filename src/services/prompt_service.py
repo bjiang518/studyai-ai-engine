@@ -55,10 +55,14 @@ class AdvancedPromptService:
                 "📱 MOBILE SCREEN OPTIMIZATION:",
                 "Your math will be displayed on iPhone/iPad screens - choose formatting carefully!",
                 "",
-                "1. SINGLE EXPRESSION RULE - Never nest $ delimiters:",
-                "   ✅ CORRECT: '$0 < |x - c| < \\delta \\implies |f(x) - L| < \\epsilon$'",
-                "   ❌ WRONG: '$0 < |x - c| < $\\delta$ \\implies |f(x) - L| < \\epsilon$'",
+                "1. DELIMITER RULES - Use \\(...\\) and \\[...\\] (NOT $ signs):",
+                "   ✅ CORRECT: 'For every \\(\\epsilon > 0\\), there exists \\(\\delta > 0\\)'",
+                "   ✅ CORRECT: '\\[\\lim_{x \\to c} f(x) = L\\]'",
                 "   ❌ WRONG: 'For every $\\epsilon > 0$, there exists $\\delta > 0$'",
+                "",
+                "2. SINGLE EXPRESSION RULE - Never break expressions:",
+                "   ✅ CORRECT: '\\(0 < |x - c| < \\delta \\implies |f(x) - L| < \\epsilon\\)'",
+                "   ❌ WRONG: '\\(0 < |x - c| < \\delta\\) implies \\(|f(x) - L| < \\epsilon\\)'",
                 "",
                 "2. MOBILE DISPLAY MATH - Use $$ for tall expressions that need vertical space:",
                 "   ✅ Use $$...$$ for: limits, integrals, large fractions, summations",
@@ -99,30 +103,21 @@ class AdvancedPromptService:
                 "   • Complex expressions get their own display block"
             ],
             examples=[
-                "PERFECT iOS MOBILE MATH FORMATTING:",
+                "PERFECT iOS MOBILE MATH FORMATTING (ChatGPT method):",
                 "",
-                "EPSILON-DELTA DEFINITION (mobile optimized):",
+                "EPSILON-DELTA DEFINITION (using \\(...\\) delimiters):",
                 "The epsilon-delta definition provides a rigorous way to define limits.",
                 "",
                 "We say that:",
-                "$$\\lim_{x \\to c} f(x) = L$$",
+                "\\[\\lim_{x \\to c} f(x) = L\\]",
                 "",
-                "This means for every $\\epsilon > 0$, there exists $\\delta > 0$ such that:",
-                "$$0 < |x - c| < \\delta \\implies |f(x) - L| < \\epsilon$$",
+                "This means for every \\(\\epsilon > 0\\), there exists \\(\\delta > 0\\) such that:",
+                "\\[0 < |x - c| < \\delta \\implies |f(x) - L| < \\epsilon\\]",
                 "",
                 "Breaking this down:",
-                "- $\\epsilon$ represents our tolerance for how close $f(x)$ must be to $L$",
-                "- $\\delta$ represents how close $x$ must be to $c$", 
-                "- The implication shows the relationship between these distances",
-                "",
-                "DIFFERENTIAL PRIVACY EXAMPLE (mobile optimized):",
-                "A mechanism $M$ satisfies $\\epsilon$-differential privacy if:",
-                "$$P(M(D) \\in S) \\leq e^{\\epsilon} \\cdot P(M(D') \\in S)$$",
-                "",  
-                "Key points:",
-                "- $D$ and $D'$ are datasets differing by one record",
-                "- $\\epsilon$ controls the privacy parameter",
-                "- $e^{\\epsilon}$ bounds the privacy loss ratio"
+                "- \\(\\epsilon\\) represents our tolerance for how close \\(f(x)\\) must be to \\(L\\)",
+                "- \\(\\delta\\) represents how close \\(x\\) must be to \\(c\\)", 
+                "- The implication shows the relationship between these distances"
             ]
         )
         
@@ -320,55 +315,74 @@ class AdvancedPromptService:
         optimized = re.sub(r'^- ', r'', optimized, flags=re.MULTILINE)  # Remove bullet points
         optimized = re.sub(r'^\d+\. ', r'', optimized, flags=re.MULTILINE)  # Remove numbered lists
         
-        # Fix stray LaTeX expressions that aren't wrapped in $ delimiters
-        def fix_stray_latex(text):
-            # More comprehensive LaTeX command detection
+        # Comprehensive LaTeX post-processing pipeline (ChatGPT recommended)
+        def comprehensive_latex_repair(text):
+            """
+            Robust LaTeX repair pipeline following ChatGPT's recommendations:
+            1. Normalize Unicode → TeX
+            2. Fix missing braces in super/subscripts  
+            3. Repair delimiter mismatches
+            4. Handle common AI mistakes
+            """
+            
+            # Step 1: Unicode symbol normalization
+            unicode_fixes = [
+                ('\u00D7', '\\times'),    # × → \times
+                ('\u00F7', '\\div'),      # ÷ → \div  
+                ('\u2212', '-'),          # − → - (minus)
+                ('\u00B7', '\\cdot'),     # · → \cdot
+                ('\u00B0', '^{\\circ}'), # ° → ^{\circ}
+                ('×', '\\times'),         # ASCII × → \times
+                ('÷', '\\div'),           # ASCII ÷ → \div
+                ('·', '\\cdot'),          # ASCII · → \cdot
+            ]
+            
+            for unicode_char, latex_cmd in unicode_fixes:
+                text = text.replace(unicode_char, latex_cmd)
+            
+            # Step 2: Fix missing braces in superscripts/subscripts
+            # x^10 → x^{10}, a_bcd → a_{bcd}
+            text = re.sub(r'(\^)([A-Za-z0-9]{2,})', r'^\{\2\}', text)
+            text = re.sub(r'(_)([A-Za-z0-9]{2,})', r'_\{\2\}', text)
+            
+            # Step 3: Fix common AI delimiter mistakes
             patterns_to_fix = [
-                # Greek letters
-                (r'(?<!\$)\\(epsilon|delta|alpha|beta|gamma|theta|phi|psi|omega|sigma|lambda|mu|nu|xi|rho|tau|chi)(?!\$)', r'$\\\1$'),
-                # Math operators and symbols  
-                (r'(?<!\$)\\(leq|geq|neq|approx|equiv|cdot|times|div|pm|mp|cap|cup|subset|supset|in|notin|infty)(?!\$)', r'$\\\1$'),
-                # Functions with arguments
-                (r'(?<!\$)\\(sqrt|frac|sum|int|log|ln|sin|cos|tan|sec|csc|cot)\{[^}]*\}(?!\{[^}]*\})*(?!\$)', r'$\g<0>$'),
-                # Simple expressions like "< ε" or "> ε"  
-                (r'([<>=])\s*([εδαβγθφψωσλμνξρτχ])', r'\1 $\2$'),
-                # Standalone Greek letters in text
-                (r'(?<![a-zA-Z$])([εδαβγθφψωσλμνξρτχ])(?![a-zA-Z$])', r'$\1$'),
+                # "\epsilon$ represents" → "$\epsilon$ represents"
+                (r'\\([a-zA-Z]+)\$', r'$\\\1$'),
+                
+                # "$x must be" → "$x$ must be" 
+                (r'\$([a-zA-Z]+)\s+([a-z])', r'$\1$ \2'),
+                
+                # "0 < |x - c| < \delta$" → "$0 < |x - c| < \delta$"
+                (r'([0-9<>=|x\-c\s]+)\\([a-zA-Z]+)\$', r'$\1\\\2$'),
+                
+                # Fix broken expression starts: "expression 0 < |x|" → "$0 < |x|$"
+                (r'(?<!\$)([0-9<>=|x\-c\s\(\)]+\s*[<>=]\s*[0-9<>=|x\-c\s\(\)\\a-zA-Z]+)(?!\$)', r'$\1$'),
             ]
             
             for pattern, replacement in patterns_to_fix:
                 text = re.sub(pattern, replacement, text)
             
-            return text
-        
-        # Fix nested dollar signs (critical iOS rendering issue)
-        def fix_nested_dollars(text):
-            # Pattern: $...some content...$variable$...more content...$
-            # This creates double $$ around variable which breaks MathJax
+            # Step 4: Balance mismatched \left \right pairs
+            # Count \left and \right occurrences
+            left_count = len(re.findall(r'\\left', text))
+            right_count = len(re.findall(r'\\right', text))
             
-            # Find patterns like: $0 < |x - c| < $\delta$ \implies |f(x) - L| < \epsilon$
-            # Should become: $0 < |x - c| < \delta \implies |f(x) - L| < \epsilon$
+            if left_count != right_count:
+                # If mismatched, remove all \left and \right
+                text = re.sub(r'\\left\s*', '', text)
+                text = re.sub(r'\\right\s*', '', text)
             
-            # Method: Remove inner $ delimiters within existing $ expressions
-            def fix_inner_dollars(match):
-                full_expr = match.group(0)  # The entire $...$ expression
-                # Remove any $ that appear inside this expression (except the outer ones)
-                inner_content = full_expr[1:-1]  # Remove outer $
-                # Remove any remaining $ signs from inner content
-                cleaned_inner = inner_content.replace('$', '')
-                return f'${cleaned_inner}$'
-            
-            # Find complete math expressions and clean inner dollars
-            # This regex finds $...$ expressions that may contain inner $
-            text = re.sub(r'\$[^$]*\$[^$]*\$[^$]*\$', fix_inner_dollars, text)
-            
-            # Also handle simpler cases: $...$variable$...$
-            text = re.sub(r'\$([^$]*)\$([^$\s]+)\$([^$]*)\$', r'$\1\2\3$', text)
+            # Step 5: Fix obvious fraction patterns
+            # (a+b)/(c+d) → \frac{a+b}{c+d}
+            text = re.sub(r'\(([^)]+)\)/\(([^)]+)\)', r'\\frac{\1}{\2}', text)
+            # Simple fractions: 1/2 → \frac{1}{2} (when not already in LaTeX)
+            text = re.sub(r'(?<![a-zA-Z\\])(\d+)/(\d+)(?![a-zA-Z])', r'\\frac{\1}{\2}', text)
             
             return text
         
-        optimized = fix_stray_latex(optimized)
-        optimized = fix_nested_dollars(optimized)
+        # Apply comprehensive repair
+        optimized = comprehensive_latex_repair(optimized)
         
         # Ensure proper spacing around operators (but preserve LaTeX)
         # Only apply to non-LaTeX content (outside of $ delimiters)
