@@ -254,7 +254,19 @@ async def get_personalization_profile(student_id: str):
 
 if __name__ == "__main__":
     # Get port from environment variable (Railway sets this automatically)
-    port = int(os.getenv("PORT", 8000))
+    port_env = os.getenv("PORT", "8000")
+    print(f"🔍 DEBUG: Raw PORT environment variable: '{port_env}'")
+    print(f"🔍 DEBUG: PORT type: {type(port_env)}")
+    
+    try:
+        port = int(port_env)
+        print(f"✅ DEBUG: Successfully parsed PORT: {port}")
+    except ValueError as e:
+        print(f"❌ DEBUG: Failed to parse PORT '{port_env}': {e}")
+        print("🔄 DEBUG: Using default port 8000")
+        port = 8000
+    
+    print(f"🚀 DEBUG: Starting server on 0.0.0.0:{port}")
     
     # Production server
     uvicorn.run(
