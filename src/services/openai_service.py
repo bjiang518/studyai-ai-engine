@@ -320,24 +320,11 @@ Please evaluate this answer and provide helpful feedback."""
         """
         
         try:
-            # Create educational image analysis prompt
-            system_prompt = f"""You are an expert educational content analyzer with advanced mathematical and scientific knowledge.
-
-Analyze this image and extract ALL educational content including:
-1. Mathematical equations, formulas, and expressions
-2. Scientific notation, chemical formulas, and symbols
-3. Text content, questions, and problems
-4. Diagrams, graphs, and charts (describe them)
-5. Handwritten and printed content
-
-For mathematical content, please:
-- Convert to proper LaTeX format using \\(...\\) for inline math and \\[...\\] for display math
-- Ensure accurate symbol recognition (√, π, ∫, ∑, etc.)
-- Preserve equation structure and formatting
-- Handle fractions, exponents, and complex expressions
-
-Subject context: {subject}
-Focus on educational accuracy and completeness."""
+            # Use subject-specific prompting from PromptService
+            system_prompt = self.prompt_service.create_image_analysis_prompt(
+                subject_string=subject,
+                context=student_context
+            )
 
             # Use GPT-4o which has vision capabilities
             response = await self.client.chat.completions.create(
@@ -417,25 +404,18 @@ Focus on educational accuracy and completeness."""
         """
         
         try:
-            # Create comprehensive educational analysis prompt
-            system_prompt = f"""You are an expert {subject} tutor with advanced image analysis capabilities.
-
-Your task is to:
-1. Extract and analyze ALL content from the image (text, equations, diagrams, etc.)
-2. Provide comprehensive educational explanations and solutions
-3. Format mathematical content using proper LaTeX notation
-4. Give step-by-step solutions where applicable
-5. Identify key concepts and provide learning guidance
-
-For mathematical content:
-- Use \\(...\\) for inline math and \\[...\\] for display math
-- Ensure accurate symbol recognition and formatting
-- Provide detailed solution steps
-- Explain reasoning clearly
-
-{"Additional context: " + question if question else ""}
-
-Focus on educational value and accuracy."""
+            # Use subject-specific prompting with question context from PromptService
+            if question:
+                system_prompt = self.prompt_service.create_question_with_image_prompt(
+                    question=question,
+                    subject_string=subject,
+                    context=student_context
+                )
+            else:
+                system_prompt = self.prompt_service.create_image_analysis_prompt(
+                    subject_string=subject,
+                    context=student_context
+                )
 
             # Use GPT-4o for vision + reasoning capabilities
             response = await self.client.chat.completions.create(
