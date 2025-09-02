@@ -16,9 +16,21 @@ from dotenv import load_dotenv
 # Import our advanced AI services
 from src.services.openai_service import EducationalAIService
 from src.services.prompt_service import AdvancedPromptService
+from src.services.session_service import SessionService
 
 # Load environment variables
 load_dotenv()
+
+# Initialize Redis client (optional)
+redis_client = None
+try:
+    import redis.asyncio as redis
+    redis_url = os.getenv('REDIS_URL')
+    if redis_url:
+        redis_client = redis.from_url(redis_url)
+        print("✅ Redis connected for session storage")
+except ImportError:
+    print("⚠️ Redis not available, using in-memory session storage")
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -39,6 +51,7 @@ app.add_middleware(
 # Initialize AI services
 ai_service = EducationalAIService()
 prompt_service = AdvancedPromptService()
+session_service = SessionService(ai_service, redis_client)
 
 # Request/Response Models
 class QuestionRequest(BaseModel):
@@ -87,6 +100,29 @@ class ImageAnalysisResponse(BaseModel):
     confidence_score: float
     processing_method: str
     suggestions: List[str]
+
+# Session Management Models
+class SessionCreateRequest(BaseModel):
+    student_id: str
+    subject: str = "general"
+
+class SessionResponse(BaseModel):
+    session_id: str
+    student_id: str
+    subject: str
+    created_at: str
+    last_activity: str
+    message_count: int
+
+class SessionMessageRequest(BaseModel):
+    message: str
+    image_data: Optional[str] = None  # Base64 encoded image
+
+class SessionMessageResponse(BaseModel):
+    session_id: str
+    ai_response: str
+    tokens_used: int
+    compressed: bool
 
 # Health Check
 @app.get("/health")
@@ -411,6 +447,140 @@ async def process_image_with_question(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Image processing error: {str(e)}")
+
+# Session Management Endpoints
+@app.post("/api/v1/sessions/create", response_model=SessionResponse)
+async def create_session(request: SessionCreateRequest):
+    """
+    Create a new study session for a student.
+    Sessions maintain conversation history and context.
+    """
+    try:
+        session = await session_service.create_session(
+            student_id=request.student_id,
+            subject=request.subject
+        )
+        
+        return SessionResponse(
+            session_id=session.session_id,
+            student_id=session.student_id,
+            subject=session.subject,
+            created_at=session.created_at.isoformat(),
+            last_activity=session.last_activity.isoformat(),
+            message_count=len(session.messages)
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Session creation error: {str(e)}")
+
+@app.post("/api/v1/sessions/{session_id}/message", response_model=SessionMessageResponse)
+async def send_session_message(
+    session_id: str,
+    request: SessionMessageRequest
+):
+    """
+    Send a message in an existing session with full conversation context.
+    Automatically handles context compression when token limits are approached.
+    """
+    try:
+        # Get the session
+        session = await session_service.get_session(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        # Add user message to session
+        await session_service.add_message_to_session(
+            session_id=session_id,
+            role="user",
+            content=request.message
+        )
+        
+        # Create subject-specific system prompt
+        system_prompt = prompt_service.create_enhanced_prompt(
+            question=request.message,
+            subject_string=session.subject,
+            context={"student_id": session.student_id}
+        )
+        
+        # Get conversation context for AI
+        context_messages = session.get_context_for_api(system_prompt)
+        
+        # Call OpenAI with full conversation context
+        response = await ai_service.client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=context_messages,
+            temperature=0.3,
+            max_tokens=1500
+        )
+        
+        ai_response = response.choices[0].message.content
+        tokens_used = response.usage.total_tokens
+        
+        # Add AI response to session
+        updated_session = await session_service.add_message_to_session(
+            session_id=session_id,
+            role="assistant",
+            content=ai_response
+        )
+        
+        return SessionMessageResponse(
+            session_id=session_id,
+            ai_response=ai_response,
+            tokens_used=tokens_used,
+            compressed=updated_session.compressed_context is not None
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Session message error: {str(e)}")
+
+@app.get("/api/v1/sessions/{session_id}", response_model=SessionResponse)
+async def get_session(session_id: str):
+    """
+    Get session information and metadata.
+    """
+    try:
+        session = await session_service.get_session(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        return SessionResponse(
+            session_id=session.session_id,
+            student_id=session.student_id,
+            subject=session.subject,
+            created_at=session.created_at.isoformat(),
+            last_activity=session.last_activity.isoformat(),
+            message_count=len(session.messages)
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Session retrieval error: {str(e)}")
+
+@app.delete("/api/v1/sessions/{session_id}")
+async def delete_session(session_id: str):
+    """
+    Delete a session and all its data.
+    """
+    try:
+        session = await session_service.get_session(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        # Clear from storage
+        if session_service.redis_client:
+            await session_service.redis_client.delete(f"session:{session_id}")
+        else:
+            session_service.sessions.pop(session_id, None)
+        
+        return {"message": "Session deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Session deletion error: {str(e)}")
 
 if __name__ == "__main__":
     # Get port from environment variable (Railway sets this automatically)

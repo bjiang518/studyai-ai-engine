@@ -8,6 +8,10 @@ python-multipart==0.0.6
 
 # AI Integration
 openai==1.3.7
+tiktoken==0.5.1
+
+# Session Storage
+redis==5.0.1
 
 # Utilities
 python-dotenv==1.0.0
