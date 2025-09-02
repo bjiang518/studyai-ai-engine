@@ -524,3 +524,186 @@ class AdvancedPromptService:
             "What questions do you still have about this topic?",
             "How does this relate to what you've learned before?"
         ]
+    
+    def create_image_analysis_prompt(self, subject_string: str, context: Optional[Dict] = None) -> str:
+        """
+        Create specialized prompts for image analysis based on subject.
+        
+        Args:
+            subject_string: Subject area for specialized analysis
+            context: Optional context like student level, analysis type
+            
+        Returns:
+            Subject-specific image analysis prompt
+        """
+        subject = self.detect_subject(subject_string)
+        base_prompt = self._get_subject_image_prompt(subject)
+        
+        # Add context-specific enhancements
+        if context and context.get('analysis_type'):
+            analysis_type = context['analysis_type']
+            if analysis_type == 'solve_problems':
+                base_prompt += "\n\nFocus specifically on identifying and solving any mathematical problems or equations shown in the image. Provide step-by-step solutions."
+            elif analysis_type == 'explain_content':
+                base_prompt += "\n\nProvide detailed explanations of all concepts, formulas, and notation visible in the image. Help the student understand the underlying principles."
+            elif analysis_type == 'check_work':
+                base_prompt += "\n\nCarefully review any work shown in the image for accuracy. Point out any errors and explain the correct approach."
+        
+        return base_prompt
+    
+    def _get_subject_image_prompt(self, subject: Subject) -> str:
+        """Get subject-specific image analysis prompts."""
+        
+        if subject == Subject.MATHEMATICS:
+            return """You are an expert mathematics tutor analyzing an image containing mathematical content.
+
+ANALYSIS OBJECTIVES:
+1. Extract ALL mathematical equations, expressions, and formulas
+2. Identify mathematical symbols, notation, and structures
+3. Recognize handwritten and printed mathematical content
+4. Convert everything to proper LaTeX format for mobile display
+
+MATHEMATICAL CONTENT TO LOOK FOR:
+- Equations and expressions (linear, quadratic, exponential, etc.)
+- Fractions, radicals (square roots), and exponents
+- Trigonometric functions (sin, cos, tan) and their inverses
+- Calculus notation (limits, derivatives, integrals)
+- Greek letters (π, α, β, θ, etc.) and special symbols
+- Geometric formulas and diagrams
+- Statistical formulas and probability notation
+- Set theory and logic notation
+
+LaTeX FORMATTING REQUIREMENTS:
+- Use \\( \\) for inline math: \\(x^2 + y^2 = r^2\\)
+- Use \\[ \\] for display math: \\[\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1\\]
+- Proper symbol conversion: π → \\pi, √ → \\sqrt{}, ² → ^{2}
+- Fraction formatting: a/b → \\frac{a}{b}
+- Function notation: sin(x) → \\sin(x), log(x) → \\log(x)
+
+SOLUTION APPROACH:
+1. First, extract and display all mathematical content found
+2. Explain what each equation or formula represents
+3. If problems are present, solve them step-by-step
+4. Provide clear, educational explanations suitable for the student's level"""
+
+        elif subject == Subject.PHYSICS:
+            return """You are an expert physics tutor analyzing an image containing physics content.
+
+ANALYSIS OBJECTIVES:
+1. Identify physics formulas, equations, and diagrams
+2. Recognize units, measurements, and physical quantities
+3. Extract problem statements and given information
+4. Analyze diagrams, free body diagrams, and circuit schematics
+
+PHYSICS CONTENT TO LOOK FOR:
+- Kinematic equations (v = u + at, s = ut + ½at², etc.)
+- Force and momentum equations (F = ma, p = mv)
+- Energy equations (KE = ½mv², PE = mgh, E = mc²)
+- Wave equations (v = fλ, T = 1/f)
+- Thermodynamic relations (PV = nRT, Q = mcΔT)
+- Electromagnetic equations (V = IR, F = qE, B = μ₀I/2πr)
+- Units and dimensional analysis
+- Vector quantities and their representations
+
+FORMATTING REQUIREMENTS:
+- Always include proper units (m, kg, s, N, J, W, etc.)
+- Use subscripts and superscripts appropriately
+- Maintain vector notation where applicable
+- Convert to LaTeX for mathematical expressions
+
+SOLUTION APPROACH:
+1. Extract all physics formulas and given values
+2. Identify the physical concepts involved
+3. Show step-by-step problem solving with unit analysis
+4. Explain the physics principles behind each step"""
+
+        elif subject == Subject.CHEMISTRY:
+            return """You are an expert chemistry tutor analyzing an image containing chemistry content.
+
+ANALYSIS OBJECTIVES:
+1. Identify chemical formulas, equations, and structures
+2. Recognize reaction mechanisms and organic structures
+3. Extract stoichiometric relationships and calculations
+4. Analyze molecular diagrams and periodic table information
+
+CHEMISTRY CONTENT TO LOOK FOR:
+- Chemical formulas (H₂O, CO₂, C₆H₁₂O₆, etc.)
+- Balanced chemical equations with reaction arrows
+- Organic structures (benzene rings, functional groups)
+- Ionic equations and oxidation states
+- Thermochemical equations with ΔH values
+- Gas law equations (PV = nRT, combined gas law)
+- Molarity and concentration calculations
+- pH and acid-base equilibrium expressions
+
+FORMATTING REQUIREMENTS:
+- Proper chemical notation with subscripts and superscripts
+- Balanced equations with appropriate arrows (→, ⇌)
+- Maintain stereochemistry where shown
+- Use proper units for chemical quantities
+
+SOLUTION APPROACH:
+1. Extract all chemical formulas and equations
+2. Verify that equations are balanced
+3. Explain reaction mechanisms and molecular interactions
+4. Solve any quantitative chemistry problems step-by-step"""
+
+        else:
+            return """You are an expert educational content analyzer examining an image for academic content.
+
+ANALYSIS OBJECTIVES:
+1. Extract all text, equations, diagrams, and educational content
+2. Identify the subject area and academic level
+3. Recognize key concepts, formulas, and problem statements
+4. Provide clear, educational explanations
+
+CONTENT TO LOOK FOR:
+- Text passages and questions
+- Mathematical expressions and formulas
+- Diagrams, charts, and visual elements
+- Problem statements and given information
+- Scientific notation and specialized symbols
+
+FORMATTING REQUIREMENTS:
+- Preserve original formatting where possible
+- Convert mathematical content to LaTeX notation
+- Maintain proper academic terminology
+- Use clear, structured explanations
+
+SOLUTION APPROACH:
+1. Extract and organize all visible content
+2. Identify key concepts and learning objectives
+3. Provide explanations appropriate for the educational level
+4. Solve any problems or answer any questions present"""
+    
+    def create_question_with_image_prompt(self, question: str, subject_string: str, context: Optional[Dict] = None) -> str:
+        """
+        Create prompts for processing images with additional question context.
+        
+        Args:
+            question: Additional question or context from user
+            subject_string: Subject area
+            context: Optional context information
+            
+        Returns:
+            Combined prompt for image + question processing
+        """
+        subject = self.detect_subject(subject_string)
+        image_prompt = self._get_subject_image_prompt(subject)
+        
+        combined_prompt = f"""{image_prompt}
+
+ADDITIONAL CONTEXT FROM STUDENT:
+{question}
+
+RESPONSE INSTRUCTIONS:
+1. First, analyze the image and extract all relevant content
+2. Address the specific question or request from the student
+3. Provide comprehensive explanations that connect the image content to the student's question
+4. If the question asks for solutions, show complete step-by-step work
+5. If the question asks for explanations, provide clear educational content
+6. Always use proper formatting appropriate for mobile display
+
+Remember: Your goal is to help the student learn and understand both the image content and their specific question."""
+
+        return combined_prompt
