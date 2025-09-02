@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Test script for StudyAI image upload functionality
 Tests both local and Railway deployed endpoints
@@ -25,7 +26,7 @@ def create_test_math_image():
         font = ImageFont.load_default()
     
     # Add some mathematical content
-    math_text = "Solve: 2x + 5 = 13\nx = 4\n√16 = 4\nπ ≈ 3.14"
+    math_text = "Solve: 2x + 5 = 13\nx = 4\nsqrt(16) = 4\npi ≈ 3.14"
     
     draw.text((20, 20), math_text, fill='black', font=font)
     
@@ -39,7 +40,7 @@ def create_test_math_image():
 def test_analyze_image_endpoint(base_url, image_data):
     """Test the analyze-image endpoint."""
     
-    print(f"🧪 Testing analyze-image endpoint: {base_url}")
+    print(f"Testing analyze-image endpoint: {base_url}")
     
     url = f"{base_url}/api/v1/analyze-image"
     
@@ -55,29 +56,29 @@ def test_analyze_image_endpoint(base_url, image_data):
     try:
         response = requests.post(url, files=files, data=data, timeout=30)
         
-        print(f"📊 Status Code: {response.status_code}")
+        print(f"Status Code: {response.status_code}")
         
         if response.status_code == 200:
             result = response.json()
-            print("✅ SUCCESS - Image analysis completed!")
-            print(f"📄 Extracted text length: {len(result.get('extracted_text', ''))}")
-            print(f"🧮 Mathematical content: {result.get('mathematical_content', False)}")
-            print(f"🎯 Confidence score: {result.get('confidence_score', 0)}")
-            print(f"💡 Suggestions: {len(result.get('suggestions', []))}")
+            print("SUCCESS - Image analysis completed!")
+            print(f"Extracted text length: {len(result.get('extracted_text', ''))}")
+            print(f"Mathematical content: {result.get('mathematical_content', False)}")
+            print(f"Confidence score: {result.get('confidence_score', 0)}")
+            print(f"Suggestions: {len(result.get('suggestions', []))}")
             
             # Show first 200 chars of extracted text
             extracted_text = result.get('extracted_text', '')
             if extracted_text:
-                print(f"📝 Extracted text preview: {extracted_text[:200]}...")
+                print(f"Extracted text preview: {extracted_text[:200]}...")
             
             return True
         else:
-            print(f"❌ FAILED - HTTP {response.status_code}")
-            print(f"📄 Response: {response.text}")
+            print(f"FAILED - HTTP {response.status_code}")
+            print(f"Response: {response.text}")
             return False
             
     except Exception as e:
-        print(f"❌ ERROR: {str(e)}")
+        print(f"ERROR: {str(e)}")
         return False
 
 def test_process_image_question_endpoint(base_url, image_data):
