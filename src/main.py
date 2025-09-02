@@ -4,12 +4,13 @@ StudyAI AI Engine - Main Application Entry Point
 Advanced AI processing service for educational content and agentic workflows.
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, List, Optional
 import uvicorn
 import os
+import base64
 from dotenv import load_dotenv
 
 # Import our advanced AI services
@@ -79,6 +80,13 @@ class AnswerEvaluationRequest(BaseModel):
     student_answer: str
     subject: str
     correct_answer: Optional[str] = None
+
+class ImageAnalysisResponse(BaseModel):
+    extracted_text: str
+    mathematical_content: bool
+    confidence_score: float
+    processing_method: str
+    suggestions: List[str]
 
 # Health Check
 @app.get("/health")
@@ -251,6 +259,158 @@ async def get_personalization_profile(student_id: str):
         "preferred_explanation_style": "step_by_step",
         "recent_topics": ["quadratic_equations", "force_analysis"]
     }
+
+# Image Upload and Analysis Endpoint
+@app.post("/api/v1/analyze-image", response_model=ImageAnalysisResponse)
+async def analyze_image_content(
+    image: UploadFile = File(...),
+    subject: Optional[str] = Form("general"),
+    student_id: Optional[str] = Form("anonymous")
+):
+    """
+    Upload and analyze image content for mathematical and educational content extraction.
+    
+    This endpoint uses OpenAI's Vision API to process images containing:
+    - Complex mathematical equations and formulas
+    - Handwritten mathematical content
+    - Diagrams, graphs, and charts
+    - Scientific notation and symbols
+    - Mixed text and mathematical content
+    
+    Args:
+        image: Image file (JPEG, PNG, WebP)
+        subject: Academic subject context for better analysis
+        student_id: Student identifier for personalization
+        
+    Returns:
+        Extracted content with mathematical formatting and analysis suggestions
+    """
+    
+    import time
+    start_time = time.time()
+    
+    try:
+        # Validate file type
+        if not image.content_type or not image.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        # Validate file size (max 5MB for API cost management)
+        contents = await image.read()
+        if len(contents) > 5 * 1024 * 1024:  # 5MB limit
+            raise HTTPException(status_code=400, detail="Image file too large (max 5MB)")
+        
+        # Convert to base64 for OpenAI API
+        base64_image = base64.b64encode(contents).decode('utf-8')
+        
+        # Use AI service to process the image
+        result = await ai_service.analyze_image_content(
+            base64_image=base64_image,
+            image_format=image.content_type.split('/')[-1],
+            subject=subject,
+            student_context={"student_id": student_id}
+        )
+        
+        if not result["success"]:
+            raise HTTPException(status_code=500, detail=result.get("error", "Image analysis failed"))
+        
+        # Calculate processing time
+        processing_time = int((time.time() - start_time) * 1000)
+        
+        return ImageAnalysisResponse(
+            extracted_text=result["extracted_text"],
+            mathematical_content=result["has_math"],
+            confidence_score=result["confidence"],
+            processing_method="openai_vision_gpt4o",
+            suggestions=result["suggestions"]
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Image analysis error: {str(e)}")
+
+# Process Image with Question Context
+@app.post("/api/v1/process-image-question")
+async def process_image_with_question(
+    image: UploadFile = File(...),
+    question: Optional[str] = Form(""),
+    subject: str = Form("general"),
+    student_id: Optional[str] = Form("anonymous")
+):
+    """
+    Process an image with optional question context for comprehensive analysis.
+    
+    This combines image analysis with question processing to provide:
+    - Extracted mathematical content from the image
+    - AI-powered explanation and solution steps
+    - Subject-specific educational guidance
+    - Follow-up questions and learning recommendations
+    """
+    
+    import time
+    start_time = time.time()
+    
+    try:
+        # Validate and process image (same validation as analyze-image)
+        if not image.content_type or not image.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        contents = await image.read()
+        if len(contents) > 5 * 1024 * 1024:  # 5MB limit
+            raise HTTPException(status_code=400, detail="Image file too large (max 5MB)")
+        
+        base64_image = base64.b64encode(contents).decode('utf-8')
+        
+        # Process image with question context
+        result = await ai_service.process_image_with_question(
+            base64_image=base64_image,
+            image_format=image.content_type.split('/')[-1],
+            question=question,
+            subject=subject,
+            student_context={"student_id": student_id}
+        )
+        
+        if not result["success"]:
+            raise HTTPException(status_code=500, detail=result.get("error", "Image processing failed"))
+        
+        # Calculate processing time
+        processing_time = int((time.time() - start_time) * 1000)
+        
+        # Create comprehensive response combining image analysis and question processing
+        advanced_response = AdvancedReasoningResponse(
+            answer=result["answer"],
+            reasoning_steps=result["reasoning_steps"],
+            key_concepts=result["key_concepts"],
+            follow_up_questions=result["follow_up_questions"],
+            difficulty_assessment="extracted_from_image",
+            learning_recommendations=result["learning_recommendations"]
+        )
+        
+        learning_analysis = LearningAnalysis(
+            concepts_reinforced=result["key_concepts"],
+            difficulty_assessment="image_based_analysis",
+            next_recommendations=result["next_steps"],
+            estimated_understanding=result.get("confidence", 0.85),
+            subject_mastery_level="analysis_required"
+        )
+        
+        return {
+            "response": advanced_response,
+            "learning_analysis": learning_analysis,
+            "image_analysis": {
+                "extracted_content": result["extracted_text"],
+                "mathematical_content": result["has_math"],
+                "processing_method": "openai_vision_gpt4o"
+            },
+            "processing_time_ms": processing_time,
+            "model_details": {
+                "model": "gpt-4o",
+                "vision_enabled": True,
+                "prompt_optimization": "enabled",
+                "image_analysis": "enabled"
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Image processing error: {str(e)}")
 
 if __name__ == "__main__":
     # Get port from environment variable (Railway sets this automatically)

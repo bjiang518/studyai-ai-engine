@@ -298,3 +298,315 @@ Please evaluate this answer and provide helpful feedback."""
                 "error": str(e),
                 "feedback": "Unable to evaluate answer at this time."
             }
+    
+    async def analyze_image_content(
+        self,
+        base64_image: str,
+        image_format: str,
+        subject: str = "general",
+        student_context: Optional[Dict] = None
+    ) -> Dict[str, Any]:
+        """
+        Analyze image content using OpenAI Vision API for educational content extraction.
+        
+        Args:
+            base64_image: Base64 encoded image data
+            image_format: Image format (jpeg, png, webp)
+            subject: Academic subject context
+            student_context: Optional student information
+            
+        Returns:
+            Extracted content with mathematical formatting and analysis
+        """
+        
+        try:
+            # Create educational image analysis prompt
+            system_prompt = f"""You are an expert educational content analyzer with advanced mathematical and scientific knowledge.
+
+Analyze this image and extract ALL educational content including:
+1. Mathematical equations, formulas, and expressions
+2. Scientific notation, chemical formulas, and symbols
+3. Text content, questions, and problems
+4. Diagrams, graphs, and charts (describe them)
+5. Handwritten and printed content
+
+For mathematical content, please:
+- Convert to proper LaTeX format using \\(...\\) for inline math and \\[...\\] for display math
+- Ensure accurate symbol recognition (√, π, ∫, ∑, etc.)
+- Preserve equation structure and formatting
+- Handle fractions, exponents, and complex expressions
+
+Subject context: {subject}
+Focus on educational accuracy and completeness."""
+
+            # Use GPT-4o which has vision capabilities
+            response = await self.client.chat.completions.create(
+                model="gpt-4o",  # Use GPT-4o for vision capabilities
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {
+                        "role": "user", 
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": f"Please analyze this {subject} image and extract all educational content with proper mathematical formatting."
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/{image_format};base64,{base64_image}"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                temperature=0.1,  # Very low temperature for accuracy
+                max_tokens=2000
+            )
+            
+            extracted_content = response.choices[0].message.content
+            
+            # Analyze mathematical content
+            has_math = self._detect_mathematical_content(extracted_content)
+            
+            # Generate confidence score based on content quality
+            confidence = self._calculate_extraction_confidence(extracted_content)
+            
+            # Generate suggestions for the student
+            suggestions = self._generate_image_analysis_suggestions(extracted_content, subject, has_math)
+            
+            return {
+                "success": True,
+                "extracted_text": extracted_content,
+                "has_math": has_math,
+                "confidence": confidence,
+                "suggestions": suggestions,
+                "processing_method": "openai_vision_gpt4o"
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "extracted_text": "Unable to analyze image content.",
+                "has_math": False,
+                "confidence": 0.0,
+                "suggestions": ["Please try uploading the image again."]
+            }
+    
+    async def process_image_with_question(
+        self,
+        base64_image: str,
+        image_format: str,
+        question: str = "",
+        subject: str = "general",
+        student_context: Optional[Dict] = None
+    ) -> Dict[str, Any]:
+        """
+        Process an image with optional question context for comprehensive educational analysis.
+        
+        Args:
+            base64_image: Base64 encoded image data
+            image_format: Image format (jpeg, png, webp)
+            question: Optional question context
+            subject: Academic subject
+            student_context: Optional student information
+            
+        Returns:
+            Comprehensive educational response with extracted content and AI analysis
+        """
+        
+        try:
+            # Create comprehensive educational analysis prompt
+            system_prompt = f"""You are an expert {subject} tutor with advanced image analysis capabilities.
+
+Your task is to:
+1. Extract and analyze ALL content from the image (text, equations, diagrams, etc.)
+2. Provide comprehensive educational explanations and solutions
+3. Format mathematical content using proper LaTeX notation
+4. Give step-by-step solutions where applicable
+5. Identify key concepts and provide learning guidance
+
+For mathematical content:
+- Use \\(...\\) for inline math and \\[...\\] for display math
+- Ensure accurate symbol recognition and formatting
+- Provide detailed solution steps
+- Explain reasoning clearly
+
+{"Additional context: " + question if question else ""}
+
+Focus on educational value and accuracy."""
+
+            # Use GPT-4o for vision + reasoning capabilities
+            response = await self.client.chat.completions.create(
+                model="gpt-4o",  # GPT-4o for vision + advanced reasoning
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": f"Please analyze this image and provide comprehensive educational assistance. {f'Context: {question}' if question else ''}"
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/{image_format};base64,{base64_image}"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                temperature=0.2,  # Low temperature for educational accuracy
+                max_tokens=2500
+            )
+            
+            ai_response = response.choices[0].message.content
+            
+            # Extract structured information from the response
+            extracted_text = self._extract_image_content(ai_response)
+            reasoning_steps = self._extract_reasoning_steps(ai_response)
+            key_concepts = self._identify_key_concepts(ai_response, subject)
+            
+            # Generate follow-up questions
+            follow_ups = self._generate_image_based_followups(ai_response, subject)
+            
+            # Generate learning recommendations
+            learning_recs = self._generate_learning_recommendations(ai_response, subject)
+            
+            # Calculate confidence
+            confidence = self._calculate_extraction_confidence(ai_response)
+            has_math = self._detect_mathematical_content(ai_response)
+            
+            return {
+                "success": True,
+                "answer": ai_response,
+                "extracted_text": extracted_text,
+                "reasoning_steps": reasoning_steps,
+                "key_concepts": key_concepts,
+                "follow_up_questions": follow_ups,
+                "learning_recommendations": learning_recs,
+                "next_steps": [
+                    "Practice similar problems to reinforce understanding",
+                    "Review key concepts identified in the analysis",
+                    "Try variations of this problem type"
+                ],
+                "has_math": has_math,
+                "confidence": confidence
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "answer": "Unable to process image with question context.",
+                "extracted_text": "",
+                "reasoning_steps": [],
+                "key_concepts": [],
+                "follow_up_questions": [],
+                "learning_recommendations": [],
+                "next_steps": [],
+                "has_math": False,
+                "confidence": 0.0
+            }
+    
+    def _detect_mathematical_content(self, content: str) -> bool:
+        """Detect if extracted content contains mathematical expressions."""
+        math_indicators = [
+            '\\(', '\\)', '\\[', '\\]',  # LaTeX delimiters
+            'frac{', 'sqrt{', '^{', '_{',  # LaTeX functions
+            '=', '+', '-', '×', '÷', '*', '/',  # Math operators
+            'π', 'α', 'β', 'γ', 'δ', 'θ',  # Greek letters
+            '∫', '∑', '√', '≤', '≥', '≠',  # Math symbols
+            'equation', 'formula', 'solve', 'calculate'  # Math keywords
+        ]
+        
+        content_lower = content.lower()
+        return any(indicator in content_lower for indicator in math_indicators)
+    
+    def _calculate_extraction_confidence(self, content: str) -> float:
+        """Calculate confidence score for extracted content."""
+        if not content or len(content.strip()) < 10:
+            return 0.1
+        
+        # Factors that increase confidence
+        confidence = 0.5  # Base confidence
+        
+        # Length factor
+        if len(content) > 100:
+            confidence += 0.2
+        if len(content) > 500:
+            confidence += 0.1
+        
+        # Mathematical content factor
+        if self._detect_mathematical_content(content):
+            confidence += 0.2
+        
+        # Structure factor (proper sentences, formatting)
+        sentences = content.count('.') + content.count('!') + content.count('?')
+        if sentences > 2:
+            confidence += 0.1
+        
+        return min(confidence, 1.0)
+    
+    def _generate_image_analysis_suggestions(self, content: str, subject: str, has_math: bool) -> List[str]:
+        """Generate helpful suggestions based on image analysis."""
+        suggestions = []
+        
+        if has_math:
+            suggestions.extend([
+                "Mathematical content detected - verify equation formatting",
+                "Consider solving step-by-step if this is a problem",
+                "Check for any symbol recognition errors"
+            ])
+        
+        if subject.lower() in ['mathematics', 'physics', 'chemistry']:
+            suggestions.append(f"For {subject} problems, show your work clearly")
+        
+        suggestions.extend([
+            "You can edit the extracted text before submitting",
+            "Use the 'Ask AI' button for detailed explanations"
+        ])
+        
+        return suggestions
+    
+    def _extract_image_content(self, ai_response: str) -> str:
+        """Extract the main content from comprehensive AI response."""
+        # For now, return the full response as the extracted content
+        # In the future, this could parse out just the extracted text portion
+        return ai_response[:500] + "..." if len(ai_response) > 500 else ai_response
+    
+    def _generate_image_based_followups(self, response: str, subject: str) -> List[str]:
+        """Generate follow-up questions based on image analysis."""
+        followups = []
+        
+        if 'equation' in response.lower() or 'solve' in response.lower():
+            followups.append("Would you like me to solve this step-by-step?")
+            followups.append("Do you need help understanding any of the mathematical concepts?")
+        
+        if subject.lower() == 'mathematics':
+            followups.append("Would you like to see similar practice problems?")
+        
+        followups.append("Is there any part of this content you'd like me to explain further?")
+        
+        return followups
+    
+    def _generate_learning_recommendations(self, response: str, subject: str) -> List[str]:
+        """Generate learning recommendations based on content analysis."""
+        recommendations = []
+        
+        if self._detect_mathematical_content(response):
+            recommendations.extend([
+                "Practice similar mathematical problems",
+                "Review the fundamental concepts involved",
+                "Try solving without looking at the solution first"
+            ])
+        
+        recommendations.extend([
+            f"Explore related {subject} topics",
+            "Take notes on key concepts for future reference",
+            "Ask questions about anything unclear"
+        ])
+        
+        return recommendations
