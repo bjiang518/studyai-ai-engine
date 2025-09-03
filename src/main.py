@@ -448,6 +448,69 @@ async def process_image_with_question(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Image processing error: {str(e)}")
 
+# Homework Parsing Request Models
+class HomeworkParsingRequest(BaseModel):
+    base64_image: str
+    prompt: Optional[str] = None
+    student_id: Optional[str] = "anonymous"
+
+class HomeworkParsingResponse(BaseModel):
+    success: bool
+    response: str
+    processing_time_ms: int
+    error: Optional[str] = None
+
+# Homework Parsing Endpoint - Deterministic Format for iOS
+@app.post("/api/v1/process-homework-image", response_model=HomeworkParsingResponse)
+async def process_homework_image(request: HomeworkParsingRequest):
+    """
+    Parse homework images using AI with deterministic response format.
+    
+    This endpoint is specifically designed for the iOS app's homework parsing feature.
+    It returns responses in a structured format that the iOS device can parse:
+    
+    QUESTION_NUMBER: [number if visible, or "unnumbered"]
+    QUESTION: [complete restatement of the question]
+    ANSWER: [detailed answer/solution]
+    CONFIDENCE: [0.0-1.0 confidence score]
+    HAS_VISUALS: [true/false if question contains diagrams/graphs]
+    ═══QUESTION_SEPARATOR═══
+    
+    The iOS app uses this format to extract questions and answers for display.
+    """
+    
+    import time
+    start_time = time.time()
+    
+    try:
+        # Use the AI service to parse homework with structured prompt
+        result = await ai_service.parse_homework_image(
+            base64_image=request.base64_image,
+            custom_prompt=request.prompt,
+            student_context={"student_id": request.student_id}
+        )
+        
+        if not result["success"]:
+            raise HTTPException(status_code=500, detail=result.get("error", "Homework parsing failed"))
+        
+        # Calculate processing time
+        processing_time = int((time.time() - start_time) * 1000)
+        
+        return HomeworkParsingResponse(
+            success=True,
+            response=result["structured_response"],
+            processing_time_ms=processing_time,
+            error=None
+        )
+        
+    except Exception as e:
+        return HomeworkParsingResponse(
+            success=False,
+            response="",
+            processing_time_ms=int((time.time() - start_time) * 1000),
+            error=f"Homework parsing error: {str(e)}"
+        )
+
 # Session Management Endpoints
 @app.post("/api/v1/sessions/create", response_model=SessionResponse)
 async def create_session(request: SessionCreateRequest):

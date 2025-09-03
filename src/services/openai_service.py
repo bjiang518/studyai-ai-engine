@@ -590,3 +590,120 @@ Please evaluate this answer and provide helpful feedback."""
         ])
         
         return recommendations
+
+    async def parse_homework_image(
+        self,
+        base64_image: str,
+        custom_prompt: Optional[str] = None,
+        student_context: Optional[Dict] = None
+    ) -> Dict[str, Any]:
+        """
+        Parse homework images with structured response format for iOS app.
+        
+        Returns responses in the exact format expected by the iOS device:
+        QUESTION_NUMBER: [number]
+        QUESTION: [question text]
+        ANSWER: [detailed answer]
+        CONFIDENCE: [0.0-1.0]
+        HAS_VISUALS: [true/false]
+        ═══QUESTION_SEPARATOR═══
+        
+        Args:
+            base64_image: Base64 encoded homework image
+            custom_prompt: Optional custom prompt (uses default if not provided)
+            student_context: Optional student information
+            
+        Returns:
+            Structured response formatted for iOS parsing
+        """
+        
+        try:
+            # Create structured homework parsing prompt
+            if custom_prompt:
+                system_prompt = custom_prompt
+            else:
+                system_prompt = self._create_homework_parsing_prompt()
+
+            # Use GPT-4o for vision + reasoning capabilities
+            response = await self.client.chat.completions.create(
+                model="gpt-4o",  # GPT-4o for vision + advanced reasoning
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "Please analyze this homework image and provide structured responses for each question found."
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{base64_image}"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                temperature=0.1,  # Very low temperature for consistent formatting
+                max_tokens=3000
+            )
+            
+            structured_response = response.choices[0].message.content
+            
+            # Validate that the response follows the expected format
+            if "═══QUESTION_SEPARATOR═══" not in structured_response:
+                # If no proper structure, create a fallback response
+                structured_response = self._create_fallback_homework_response()
+            
+            return {
+                "success": True,
+                "structured_response": structured_response,
+                "processing_method": "openai_vision_gpt4o_homework"
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "structured_response": self._create_fallback_homework_response()
+            }
+    
+    def _create_homework_parsing_prompt(self) -> str:
+        """Create the structured prompt for homework parsing."""
+        return """You are an expert homework assistant. Analyze this homework image and:
+
+1. IDENTIFY each distinct question or problem in the image
+2. RESTATE each question clearly and completely
+3. PROVIDE a detailed answer/solution for each question
+4. SEPARATE each question-answer pair with the delimiter: ═══QUESTION_SEPARATOR═══
+
+FORMAT your response EXACTLY as follows:
+
+QUESTION_NUMBER: [number if visible, or "unnumbered"]
+QUESTION: [complete restatement of the question]
+ANSWER: [your detailed answer/solution]
+CONFIDENCE: [0.0-1.0 confidence score]
+HAS_VISUALS: [true/false if question contains diagrams/graphs]
+═══QUESTION_SEPARATOR═══
+
+IMPORTANT INSTRUCTIONS:
+- If you see numbered questions (1, 2, 3...), use those numbers
+- If questions have letters (a, b, c...), treat them as sub-parts of the same question
+- For math problems, show step-by-step solutions
+- For reading comprehension, provide complete answers
+- Be thorough but concise in your answers
+- Always include the QUESTION_SEPARATOR between different questions
+- Confidence should reflect how certain you are about the question and answer accuracy
+- HAS_VISUALS should be true if the question contains diagrams, graphs, charts, or visual elements
+
+Now analyze the homework image:"""
+    
+    def _create_fallback_homework_response(self) -> str:
+        """Create a fallback response when homework parsing fails."""
+        return """QUESTION_NUMBER: unnumbered
+QUESTION: I was unable to parse the specific questions from this homework image.
+ANSWER: Please try taking a clearer photo or manually entering the questions. Make sure the text is clearly visible and the image is well-lit.
+CONFIDENCE: 0.1
+HAS_VISUALS: false
+═══QUESTION_SEPARATOR═══"""
