@@ -232,7 +232,34 @@ Remember: Return ONLY the JSON object, no other text."""
         """Convert normalized JSON to legacy ═══QUESTION_SEPARATOR═══ format for iOS compatibility."""
         
         legacy_response = f"SUBJECT: {normalized_data['subject']}\n"
-        legacy_response += f"SUBJECT_CONFIDENCE: {normalized_data['subject_confidence']}\n\n"
+        legacy_response += f"SUBJECT_CONFIDENCE: {normalized_data['subject_confidence']}\n"
+        legacy_response += f"TOTAL_QUESTIONS: {normalized_data['total_questions']}\n"
+        legacy_response += f"JSON_PARSING: true\n"
+        legacy_response += f"PARSING_METHOD: Enhanced AI Backend Parsing with JSON Schema\n\n"
+        
+        for i, question in enumerate(normalized_data["questions"]):
+            if i > 0:
+                legacy_response += "═══QUESTION_SEPARATOR═══\n"
+            
+            legacy_response += f"QUESTION_NUMBER: {question['question_number']}\n"
+            legacy_response += f"QUESTION: {question['question_text']}\n"
+            legacy_response += f"ANSWER: {question['answer']}\n"
+            legacy_response += f"CONFIDENCE: {question['confidence']}\n"
+            legacy_response += f"HAS_VISUALS: {'true' if question['has_visuals'] else 'false'}\n"
+            
+            if question['sub_parts']:
+                legacy_response += f"SUB_PARTS: {'; '.join(question['sub_parts'])}\n"
+        
+        return legacy_response
+    
+    def _convert_to_fallback_legacy_format(self, normalized_data: Dict) -> str:
+        """Convert normalized data to legacy format marked as fallback parsing."""
+        
+        legacy_response = f"SUBJECT: {normalized_data['subject']}\n"
+        legacy_response += f"SUBJECT_CONFIDENCE: {normalized_data['subject_confidence']}\n"
+        legacy_response += f"TOTAL_QUESTIONS: {normalized_data['total_questions']}\n"
+        legacy_response += f"JSON_PARSING: false\n"
+        legacy_response += f"PARSING_METHOD: Enhanced AI Backend Parsing with Fallback Text Analysis\n\n"
         
         for i, question in enumerate(normalized_data["questions"]):
             if i > 0:
@@ -280,8 +307,8 @@ Remember: Return ONLY the JSON object, no other text."""
                 "processing_notes": "Parsed using fallback text analysis"
             }
             
-            # Convert to legacy format
-            legacy_response = self._convert_to_legacy_format(normalized_data)
+            # Convert to legacy format (mark as fallback)
+            legacy_response = self._convert_to_fallback_legacy_format(normalized_data)
             
             return {
                 "success": True,
