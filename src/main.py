@@ -14,7 +14,7 @@ import base64
 from dotenv import load_dotenv
 
 # Import our advanced AI services
-from src.services.openai_service import EducationalAIService
+from src.services.improved_openai_service import EducationalAIService  # Now uses improved parsing
 from src.services.prompt_service import AdvancedPromptService
 from src.services.session_service import SessionService
 
